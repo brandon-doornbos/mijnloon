@@ -7,7 +7,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Please enter your JouwLoon username:");
     let mut username = String::new();
     stdin.read_line(&mut username)?;
+
     let password = rpassword::prompt_password("Password: ").unwrap();
+
     println!("Calendar event title (enter for default, \"Werken\"):");
     let mut summary = String::new();
     stdin.read_line(&mut summary)?;
@@ -15,6 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if summary.is_empty() {
         summary += "Werken";
     }
+
     println!("Filename to save (enter for default, \"schedule.ics\"):");
     let mut filename = String::new();
     stdin.read_line(&mut filename)?;
@@ -25,7 +28,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     loop {
         let document_string = get_document_string(&username, &password).unwrap();
-        make_schedule(&document_string, &summary, &filename).unwrap();
+        let calendar = make_schedule(&document_string, &summary).unwrap();
+
+        println!("Saving schedule...");
+        let mut output = std::fs::File::create(&filename)?;
+        write!(output, "{}", calendar).unwrap();
+        println!("Done.");
 
         println!("Waiting 1 hour...");
         std::thread::sleep(std::time::Duration::from_secs(3600));
@@ -63,8 +71,7 @@ fn get_document_string(
 fn make_schedule(
     document_string: &str,
     summary: &str,
-    filename: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<icalendar::Calendar, Box<dyn std::error::Error>> {
     let mut calendar = icalendar::Calendar::new();
     let timezone = iana_time_zone::get_timezone()?;
     calendar.timezone(&timezone);
@@ -80,12 +87,7 @@ fn make_schedule(
     }
     println!("Done.");
 
-    println!("Saving schedule...");
-    let mut output = std::fs::File::create(filename)?;
-    write!(output, "{}", calendar).unwrap();
-    println!("Done.");
-
-    Ok(())
+    Ok(calendar)
 }
 
 fn parse_work_day(element_str: &str, summary: &str) -> icalendar::Event {
