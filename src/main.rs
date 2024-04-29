@@ -14,10 +14,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if summary.trim().is_empty() {
         summary += "Werken";
     }
+    println!("Filename to save (enter for default, \"schedule.ics\"):");
+    let mut filename = String::new();
+    stdin.read_line(&mut filename)?;
+    filename = filename.trim().to_owned();
+    if filename.is_empty() {
+        filename += "schedule.ics";
+    }
 
     loop {
         let document_string = get_document_string(&username, &password).unwrap();
-        make_schedule(&document_string, &summary).unwrap();
+        make_schedule(&document_string, &summary, &filename).unwrap();
 
         println!("Waiting 1 hour...");
         std::thread::sleep(std::time::Duration::from_secs(3600));
@@ -52,7 +59,11 @@ fn get_document_string(
     Ok(body)
 }
 
-fn make_schedule(document_string: &str, summary: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn make_schedule(
+    document_string: &str,
+    summary: &str,
+    filename: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let mut calendar = icalendar::Calendar::new();
 
     println!("Parsing schedule...");
@@ -67,8 +78,7 @@ fn make_schedule(document_string: &str, summary: &str) -> Result<(), Box<dyn std
     println!("Done.");
 
     println!("Saving schedule...");
-    let path = "schedule.ics";
-    let mut output = std::fs::File::create(path)?;
+    let mut output = std::fs::File::create(filename)?;
     write!(output, "{}", calendar).unwrap();
     println!("Done.");
 
