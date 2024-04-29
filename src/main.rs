@@ -66,6 +66,8 @@ fn make_schedule(
     filename: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut calendar = icalendar::Calendar::new();
+    let timezone = iana_time_zone::get_timezone()?;
+    calendar.timezone(&timezone);
 
     println!("Parsing schedule...");
     let document = scraper::Html::parse_document(&document_string);
