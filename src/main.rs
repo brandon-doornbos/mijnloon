@@ -11,7 +11,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Calendar event title (enter for default, \"Werken\"):");
     let mut summary = String::new();
     stdin.read_line(&mut summary)?;
-    if summary.trim().is_empty() {
+    summary = summary.trim().to_owned();
+    if summary.is_empty() {
         summary += "Werken";
     }
     println!("Filename to save (enter for default, \"schedule.ics\"):");
@@ -126,7 +127,7 @@ fn parse_work_day(element_str: &str, summary: &str) -> icalendar::Event {
     let end_datetime = chrono::NaiveDateTime::new(date, end_time);
 
     icalendar::Event::new()
-        .summary(summary.trim())
+        .summary(summary)
         .starts(begin_datetime)
         .ends(end_datetime)
         .done()
