@@ -61,7 +61,7 @@ fn get_document_string(
     if response.url().path() != "/login" {
         println!("Done.");
     } else {
-        panic!("Failed to log in.");
+        panic!("Failed to log in. (wrong username or password?)");
     }
 
     println!("Getting schedule...");
