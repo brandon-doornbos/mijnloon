@@ -27,13 +27,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     loop {
-        let document_string = get_document_string(&username, &password).unwrap();
-        let calendar = make_schedule(&document_string, &summary).unwrap();
+        if let Ok(document_string) = get_document_string(&username, &password) {
+            let calendar = make_schedule(&document_string, &summary).unwrap();
 
-        println!("Saving schedule...");
-        let mut output = std::fs::File::create(&filename)?;
-        write!(output, "{}", calendar).unwrap();
-        println!("Done.");
+            println!("Saving schedule...");
+            let mut output = std::fs::File::create(&filename)?;
+            write!(output, "{}", calendar).unwrap();
+            println!("Done.");
+        } else {
+            println!("Failed to get schedule, trying again later.")
+        }
 
         println!("Waiting 1 hour...");
         std::thread::sleep(std::time::Duration::from_secs(3600));
