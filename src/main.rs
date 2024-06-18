@@ -27,15 +27,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     loop {
-        if let Ok(document_string) = get_document_string(&username, &password) {
-            let calendar = make_schedule(&document_string, &summary).unwrap();
+        match get_document_string(&username, &password) {
+            Ok(document_string) => {
+                let calendar = make_schedule(&document_string, &summary).unwrap();
 
-            println!("Saving schedule...");
-            let mut output = std::fs::File::create(&filename)?;
-            write!(output, "{}", calendar).unwrap();
-            println!("Done.");
-        } else {
-            println!("Failed to get schedule, trying again later.")
+                println!("Saving schedule...");
+                match std::fs::File::create(&filename) {
+                    Ok(mut output) => {
+                        write!(output, "{}", calendar).unwrap();
+                        println!("Done.");
+                    }
+                    Err(error) => {
+                        println!("Failed to save schedule: {}. Trying again later.", error)
+                    }
+                }
+            }
+            Err(error) => println!("Failed to get schedule: {}, trying again later.", error),
         }
 
         println!("Waiting 1 hour...");
@@ -61,7 +68,7 @@ fn get_document_string(
     if response.url().path() != "/login" {
         println!("Done.");
     } else {
-        panic!("Failed to log in. (wrong username or password?)");
+        return Err("Failed to log in (wrong username or password?)".into());
     }
 
     println!("Getting schedule...");
