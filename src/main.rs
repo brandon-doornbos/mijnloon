@@ -1,7 +1,8 @@
 use icalendar::{Component, EventLike};
-use std::io::Write;
+use std::error::Error;
+use std::io::prelude::*;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     let stdin = std::io::stdin();
 
     println!("Please enter your JouwLoon username:");
@@ -50,10 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-fn get_document_string(
-    username: &str,
-    password: &str,
-) -> Result<String, Box<dyn std::error::Error>> {
+fn get_document_string(username: &str, password: &str) -> Result<String, Box<dyn Error>> {
     let client = reqwest::blocking::Client::builder()
         .cookie_store(true)
         .build()?;
@@ -81,7 +79,7 @@ fn get_document_string(
 fn make_schedule(
     document_string: &str,
     summary: &str,
-) -> Result<icalendar::Calendar, Box<dyn std::error::Error>> {
+) -> Result<icalendar::Calendar, Box<dyn Error>> {
     let mut calendar = icalendar::Calendar::new();
     let timezone = iana_time_zone::get_timezone()?;
     calendar.timezone(&timezone);
