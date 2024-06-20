@@ -59,12 +59,50 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         match command.trim() {
             "n" => new_custom_event()?,
+            "r" => remove_custom_event()?,
             _ => {
-                println!("Unknown command, use 'n' to manually add an event.");
+                println!("Unknown command, use 'n' to manually add an event or 'r' to remove one.");
                 continue;
             }
         }
     }
+}
+
+fn remove_custom_event() -> Result<(), Box<dyn Error>> {
+    let mut custom_events = get_custom_events()?;
+
+    if custom_events.is_empty() {
+        println!("No custom events found!");
+        return Ok(());
+    }
+
+    let mut i = 0;
+    for (begin, end) in custom_events.iter() {
+        println!("{}: {} - {}", i, begin, end);
+        i += 1;
+    }
+    custom_events.remove(stdin_read_int("Which event would you like to remove", 0));
+
+    let options = file_lock::FileOptions::new()
+        .write(true)
+        .create(true)
+        .append(true);
+
+    // FIXME: error handling
+    let mut filelock = match file_lock::FileLock::lock(CUSTOM_EVENTS_FILE, true, options) {
+        Ok(lock) => lock,
+        Err(err) => panic!("Error getting file lock: {}", err),
+    };
+
+    // FIXME: error handling
+    filelock.file.set_len(0)?;
+
+    // FIXME: error handling
+    let json = serde_json::to_string(&custom_events)?;
+    filelock.file.write_all(json.as_bytes())?;
+
+    println!("Done.");
+    Ok(())
 }
 
 fn stdin_read_int<T: std::str::FromStr + std::fmt::Display>(prompt: &str, default: T) -> T {
