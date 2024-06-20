@@ -1,6 +1,9 @@
+use chrono::{Datelike, NaiveDate, NaiveDateTime, Timelike};
 use icalendar::{Component, EventLike};
 use std::error::Error;
 use std::io::prelude::*;
+
+static CUSTOM_EVENTS_FILE: &str = "custom_events.json";
 
 fn main() -> Result<(), Box<dyn Error>> {
     let stdin = std::io::stdin();
@@ -27,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         filename += "schedule.ics";
     }
 
-    loop {
+    std::thread::spawn(move || {
         match get_document_string(&username, &password) {
             Ok(document_string) => {
                 let calendar = make_schedule(&document_string, &summary).unwrap();
@@ -48,7 +51,109 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         println!("Waiting 1 hour...");
         std::thread::sleep(std::time::Duration::from_secs(3600));
+    });
+
+    loop {
+        let mut command = String::new();
+        stdin.read_line(&mut command)?;
+
+        match command.trim() {
+            "n" => new_custom_event()?,
+            _ => {
+                println!("Unknown command, use 'n' to manually add an event.");
+                continue;
+            }
+        }
     }
+}
+
+fn stdin_read_int<T: std::str::FromStr + std::fmt::Display>(prompt: &str, default: T) -> T {
+    let stdin = std::io::stdin();
+    let mut buffer = String::new();
+    loop {
+        println!("{} ({}):", prompt, default);
+        buffer.clear();
+        stdin.read_line(&mut buffer).unwrap();
+
+        if let Ok(value) = buffer.trim().parse::<T>() {
+            return value;
+        } else if buffer.trim().is_empty() {
+            return default;
+        }
+    }
+}
+
+fn stdin_get_date_time() -> NaiveDateTime {
+    let now = chrono::Local::now();
+
+    let date = NaiveDate::from_ymd_opt(
+        stdin_read_int(&"Year", now.year()),
+        stdin_read_int(&"Month", now.month()),
+        stdin_read_int(&"Day", now.day()),
+    )
+    .unwrap();
+    let time = chrono::NaiveTime::from_hms_opt(
+        stdin_read_int(&"Hour", now.hour()),
+        stdin_read_int(&"Minutes", 0),
+        0,
+    )
+    .unwrap();
+    chrono::NaiveDateTime::new(date, time)
+}
+
+fn new_custom_event() -> Result<(), Box<dyn Error>> {
+    println!("Adding new event.");
+
+    let mut custom_events = get_custom_events()?;
+
+    println!("Please enter the date and time for the start of the event:");
+    let custom_begin_datetime_str = stdin_get_date_time().to_string();
+    println!("Please enter the date and time for the end of the event:");
+    let custom_end_datetime_str = stdin_get_date_time().to_string();
+
+    custom_events.push((custom_begin_datetime_str, custom_end_datetime_str));
+
+    let options = file_lock::FileOptions::new()
+        .write(true)
+        .create(true)
+        .append(true);
+
+    let mut filelock = match file_lock::FileLock::lock(CUSTOM_EVENTS_FILE, true, options) {
+        Ok(lock) => lock,
+        Err(err) => panic!("Error getting file lock: {}", err),
+    };
+
+    filelock.file.set_len(0)?;
+
+    let json = serde_json::to_string(&custom_events)?;
+    filelock.file.write_all(json.as_bytes())?;
+
+    println!("Done.");
+    Ok(())
+}
+
+fn get_custom_events() -> Result<Vec<(String, String)>, Box<dyn Error>> {
+    println!("Getting custom events.");
+
+    let options = file_lock::FileOptions::new()
+        .write(true)
+        .create(true)
+        .append(true)
+        .read(true);
+
+    let mut filelock = match file_lock::FileLock::lock(CUSTOM_EVENTS_FILE, true, options) {
+        Ok(lock) => lock,
+        Err(err) => panic!("Error getting file lock: {}", err),
+    };
+
+    let mut custom_events_str = String::new();
+    filelock.file.read_to_string(&mut custom_events_str)?;
+
+    let custom_events: Vec<(String, String)> =
+        serde_json::from_str(&custom_events_str).unwrap_or_default();
+
+    println!("Done.");
+    Ok(custom_events)
 }
 
 fn get_document_string(username: &str, password: &str) -> Result<String, Box<dyn Error>> {
@@ -94,6 +199,20 @@ fn make_schedule(
         calendar.push(event);
     }
     println!("Done.");
+
+    for (begin_datetime_str, end_datetime_str) in get_custom_events()? {
+        let begin_datetime =
+            chrono::NaiveDateTime::parse_from_str(&begin_datetime_str, "%Y-%m-%d %H:%M:%S")?;
+        let end_datetime =
+            chrono::NaiveDateTime::parse_from_str(&end_datetime_str, "%Y-%m-%d %H:%M:%S")?;
+
+        let event = icalendar::Event::new()
+            .summary(summary)
+            .starts(begin_datetime)
+            .ends(end_datetime)
+            .done();
+        calendar.push(event);
+    }
 
     Ok(calendar)
 }
