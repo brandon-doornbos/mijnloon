@@ -105,6 +105,7 @@ fn remove_custom_event() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+// TODO: add range to check for valid values
 fn stdin_read_int<T: std::str::FromStr + std::fmt::Display>(prompt: &str, default: T) -> T {
     let stdin = std::io::stdin();
     let mut buffer = String::new();
@@ -122,6 +123,7 @@ fn stdin_read_int<T: std::str::FromStr + std::fmt::Display>(prompt: &str, defaul
     }
 }
 
+// TODO: check for valid date
 fn stdin_get_date_time() -> NaiveDateTime {
     let now = chrono::Local::now();
 
