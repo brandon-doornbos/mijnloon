@@ -1,5 +1,27 @@
 use chrono::{Datelike, Timelike};
 
+pub fn stdin_read_str(prompt: &str, default: &str) -> String {
+    let stdin = std::io::stdin();
+    let mut buffer = String::new();
+    loop {
+        print!("{prompt}");
+        if !default.is_empty() {
+            print!(" ({default}):");
+        }
+        println!();
+        if let Err(error) = stdin.read_line(&mut buffer) {
+            println!("Something went wrong: {error}. Please try again.");
+            buffer.clear();
+            continue;
+        }
+        buffer = buffer.trim().to_string();
+        if buffer.is_empty() {
+            return default.to_string();
+        }
+        return buffer;
+    }
+}
+
 pub fn stdin_read_int<T>(prompt: &str, default: T) -> T
 where
     T: std::str::FromStr + std::fmt::Display,
@@ -11,7 +33,7 @@ where
         buffer.clear();
 
         if let Err(error) = stdin.read_line(&mut buffer) {
-            println!("Something went wrong: {}. Please try again.", error);
+            println!("Something went wrong: {error}. Please try again.");
             continue;
         }
 
