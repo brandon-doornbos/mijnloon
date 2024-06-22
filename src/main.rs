@@ -105,21 +105,25 @@ fn remove_custom_event() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-// TODO: add range to check for valid values
 fn stdin_read_int<T: std::str::FromStr + std::fmt::Display>(prompt: &str, default: T) -> T {
     let stdin = std::io::stdin();
     let mut buffer = String::new();
     loop {
         println!("{} ({}):", prompt, default);
         buffer.clear();
-        // FIXME: error handling
-        stdin.read_line(&mut buffer).unwrap();
+
+        if let Err(error) = stdin.read_line(&mut buffer) {
+            println!("Something went wrong: {}. Please try again.", error);
+            continue;
+        }
 
         if let Ok(value) = buffer.trim().parse::<T>() {
             return value;
         } else if buffer.trim().is_empty() {
             return default;
         }
+
+        println!("That value is invalid, please try again.");
     }
 }
 
