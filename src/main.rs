@@ -1,9 +1,9 @@
-use chrono::{Datelike, NaiveDate, NaiveDateTime, Timelike};
 use icalendar::{Component, EventLike};
 use std::error::Error;
 use std::io::prelude::*;
 
-static CUSTOM_EVENTS_FILE: &str = "custom_events.json";
+mod custom_event;
+mod util;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let stdin = std::io::stdin();
@@ -58,161 +58,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         stdin.read_line(&mut command)?;
 
         match command.trim() {
-            "n" => new_custom_event()?,
-            "r" => remove_custom_event()?,
+            "n" => custom_event::new()?,
+            "r" => custom_event::remove()?,
             _ => {
                 println!("Unknown command, use 'n' to manually add an event or 'r' to remove one.");
                 continue;
             }
         }
     }
-}
-
-fn remove_custom_event() -> Result<(), Box<dyn Error>> {
-    let mut custom_events = get_custom_events()?;
-
-    if custom_events.is_empty() {
-        println!("No custom events found!");
-        return Ok(());
-    }
-
-    let mut i = 0;
-    for (begin, end) in custom_events.iter() {
-        println!("{}: {} - {}", i, begin, end);
-        i += 1;
-    }
-    custom_events.remove(stdin_read_int("Which event would you like to remove", 0));
-
-    let options = file_lock::FileOptions::new()
-        .write(true)
-        .create(true)
-        .append(true);
-
-    // FIXME: error handling
-    let mut filelock = match file_lock::FileLock::lock(CUSTOM_EVENTS_FILE, true, options) {
-        Ok(lock) => lock,
-        Err(err) => panic!("Error getting file lock: {}", err),
-    };
-
-    // FIXME: error handling
-    filelock.file.set_len(0)?;
-
-    // FIXME: error handling
-    let json = serde_json::to_string(&custom_events)?;
-    filelock.file.write_all(json.as_bytes())?;
-
-    println!("Done.");
-    Ok(())
-}
-
-fn stdin_read_int<T: std::str::FromStr + std::fmt::Display>(prompt: &str, default: T) -> T {
-    let stdin = std::io::stdin();
-    let mut buffer = String::new();
-    loop {
-        println!("{} ({}):", prompt, default);
-        buffer.clear();
-
-        if let Err(error) = stdin.read_line(&mut buffer) {
-            println!("Something went wrong: {}. Please try again.", error);
-            continue;
-        }
-
-        if let Ok(value) = buffer.trim().parse::<T>() {
-            return value;
-        } else if buffer.trim().is_empty() {
-            return default;
-        }
-
-        println!("That value is invalid, please try again.");
-    }
-}
-
-fn stdin_get_date_time() -> NaiveDateTime {
-    let now = chrono::Local::now();
-
-    let date: NaiveDate = loop {
-        if let Some(date) = NaiveDate::from_ymd_opt(
-            stdin_read_int(&"Year", now.year()),
-            stdin_read_int(&"Month", now.month()),
-            stdin_read_int(&"Day", now.day()),
-        ) {
-            break date;
-        }
-        println!("That date is invalid, please try again.");
-    };
-
-    let time = loop {
-        if let Some(time) = chrono::NaiveTime::from_hms_opt(
-            stdin_read_int(&"Hour", now.hour()),
-            stdin_read_int(&"Minutes", 0),
-            0,
-        ) {
-            break time;
-        }
-        println!("That time is invalid, please try again.");
-    };
-
-    chrono::NaiveDateTime::new(date, time)
-}
-
-fn new_custom_event() -> Result<(), Box<dyn Error>> {
-    println!("Adding new event.");
-
-    let mut custom_events = get_custom_events()?;
-
-    println!("Please enter the date and time for the start of the event:");
-    let custom_begin_datetime_str = stdin_get_date_time().to_string();
-    println!("Please enter the date and time for the end of the event:");
-    let custom_end_datetime_str = stdin_get_date_time().to_string();
-
-    custom_events.push((custom_begin_datetime_str, custom_end_datetime_str));
-
-    let options = file_lock::FileOptions::new()
-        .write(true)
-        .create(true)
-        .append(true);
-
-    // FIXME: error handling
-    let mut filelock = match file_lock::FileLock::lock(CUSTOM_EVENTS_FILE, true, options) {
-        Ok(lock) => lock,
-        Err(err) => panic!("Error getting file lock: {}", err),
-    };
-
-    // FIXME: error handling
-    filelock.file.set_len(0)?;
-
-    // FIXME: error handling
-    let json = serde_json::to_string(&custom_events)?;
-    filelock.file.write_all(json.as_bytes())?;
-
-    println!("Done.");
-    Ok(())
-}
-
-fn get_custom_events() -> Result<Vec<(String, String)>, Box<dyn Error>> {
-    println!("Getting custom events.");
-
-    let options = file_lock::FileOptions::new()
-        .write(true)
-        .create(true)
-        .append(true)
-        .read(true);
-
-    // FIXME: error handling
-    let mut filelock = match file_lock::FileLock::lock(CUSTOM_EVENTS_FILE, true, options) {
-        Ok(lock) => lock,
-        Err(err) => panic!("Error getting file lock: {}", err),
-    };
-
-    let mut custom_events_str = String::new();
-    // FIXME: error handling
-    filelock.file.read_to_string(&mut custom_events_str)?;
-
-    let custom_events: Vec<(String, String)> =
-        serde_json::from_str(&custom_events_str).unwrap_or_default();
-
-    println!("Done.");
-    Ok(custom_events)
 }
 
 fn get_document_string(username: &str, password: &str) -> Result<String, Box<dyn Error>> {
@@ -259,7 +112,7 @@ fn make_schedule(
     }
     println!("Done.");
 
-    for (begin_datetime_str, end_datetime_str) in get_custom_events()? {
+    for (begin_datetime_str, end_datetime_str) in custom_event::get()? {
         // FIXME: error handling
         let begin_datetime =
             chrono::NaiveDateTime::parse_from_str(&begin_datetime_str, "%Y-%m-%d %H:%M:%S")?;
