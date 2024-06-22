@@ -1,4 +1,5 @@
-use icalendar::{Component, EventLike};
+use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use icalendar::{Calendar, Component, Event, EventLike};
 use std::error::Error;
 use std::io::prelude::*;
 
@@ -93,11 +94,8 @@ fn get_document_string(username: &str, password: &str) -> Result<String, Box<dyn
     Ok(body)
 }
 
-fn make_schedule(
-    document_string: &str,
-    summary: &str,
-) -> Result<icalendar::Calendar, Box<dyn Error>> {
-    let mut calendar = icalendar::Calendar::new();
+fn make_schedule(document_string: &str, summary: &str) -> Result<Calendar, Box<dyn Error>> {
+    let mut calendar = Calendar::new();
     let timezone = iana_time_zone::get_timezone()?;
     calendar.timezone(&timezone);
 
@@ -115,11 +113,10 @@ fn make_schedule(
     for (begin_datetime_str, end_datetime_str) in custom_event::get()? {
         // FIXME: error handling
         let begin_datetime =
-            chrono::NaiveDateTime::parse_from_str(&begin_datetime_str, "%Y-%m-%d %H:%M:%S")?;
-        let end_datetime =
-            chrono::NaiveDateTime::parse_from_str(&end_datetime_str, "%Y-%m-%d %H:%M:%S")?;
+            NaiveDateTime::parse_from_str(&begin_datetime_str, "%Y-%m-%d %H:%M:%S")?;
+        let end_datetime = NaiveDateTime::parse_from_str(&end_datetime_str, "%Y-%m-%d %H:%M:%S")?;
 
-        let event = icalendar::Event::new()
+        let event = Event::new()
             .summary(summary)
             .starts(begin_datetime)
             .ends(end_datetime)
@@ -130,7 +127,7 @@ fn make_schedule(
     Ok(calendar)
 }
 
-fn parse_work_day(element_str: &str, summary: &str) -> icalendar::Event {
+fn parse_work_day(element_str: &str, summary: &str) -> Event {
     let date_regex = regex::Regex::new(r"detail\((\d*),(\d*),(\d*)\);").unwrap();
     let Some((_, [year, month, day])) = date_regex.captures(element_str).map(|caps| caps.extract())
     else {
@@ -144,22 +141,22 @@ fn parse_work_day(element_str: &str, summary: &str) -> icalendar::Event {
         panic!("No times found!");
     };
 
-    let mut date = chrono::NaiveDate::from_ymd_opt(
+    let mut date = NaiveDate::from_ymd_opt(
         year.parse::<i32>().unwrap(),
         month.parse::<u32>().unwrap(),
         day.parse::<u32>().unwrap(),
     )
     .unwrap();
 
-    let begin_time = chrono::NaiveTime::from_hms_opt(
+    let begin_time = NaiveTime::from_hms_opt(
         begin_hours.parse::<u32>().unwrap(),
         begin_minutes.parse::<u32>().unwrap(),
         0,
     )
     .unwrap();
-    let begin_datetime = chrono::NaiveDateTime::new(date, begin_time);
+    let begin_datetime = NaiveDateTime::new(date, begin_time);
 
-    let end_time = chrono::NaiveTime::from_hms_opt(
+    let end_time = NaiveTime::from_hms_opt(
         end_hours.parse::<u32>().unwrap(),
         end_minutes.parse::<u32>().unwrap(),
         0,
@@ -168,9 +165,9 @@ fn parse_work_day(element_str: &str, summary: &str) -> icalendar::Event {
     if end_time < begin_time {
         date += chrono::TimeDelta::days(1);
     }
-    let end_datetime = chrono::NaiveDateTime::new(date, end_time);
+    let end_datetime = NaiveDateTime::new(date, end_time);
 
-    icalendar::Event::new()
+    Event::new()
         .summary(summary)
         .starts(begin_datetime)
         .ends(end_datetime)

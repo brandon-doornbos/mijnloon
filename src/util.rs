@@ -1,6 +1,9 @@
-use chrono::{Datelike, NaiveDate, NaiveDateTime, Timelike};
+use chrono::{Datelike, Timelike};
 
-pub fn stdin_read_int<T: std::str::FromStr + std::fmt::Display>(prompt: &str, default: T) -> T {
+pub fn stdin_read_int<T>(prompt: &str, default: T) -> T
+where
+    T: std::str::FromStr + std::fmt::Display,
+{
     let stdin = std::io::stdin();
     let mut buffer = String::new();
     loop {
@@ -22,11 +25,11 @@ pub fn stdin_read_int<T: std::str::FromStr + std::fmt::Display>(prompt: &str, de
     }
 }
 
-pub fn stdin_get_date_time() -> NaiveDateTime {
+pub fn stdin_get_date_time() -> chrono::NaiveDateTime {
     let now = chrono::Local::now();
 
-    let date: NaiveDate = loop {
-        if let Some(date) = NaiveDate::from_ymd_opt(
+    let date = loop {
+        if let Some(date) = chrono::NaiveDate::from_ymd_opt(
             stdin_read_int(&"Year", now.year()),
             stdin_read_int(&"Month", now.month()),
             stdin_read_int(&"Day", now.day()),
