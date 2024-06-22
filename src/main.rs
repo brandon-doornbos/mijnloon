@@ -1,5 +1,7 @@
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use icalendar::{Calendar, Component, Event, EventLike};
+use once_cell::sync::Lazy;
+use regex::Regex;
 use std::error::Error;
 use std::io::prelude::*;
 
@@ -31,27 +33,39 @@ fn main() -> Result<(), Box<dyn Error>> {
         filename += "schedule.ics";
     }
 
+    let mut first = true;
     std::thread::spawn(move || loop {
-        match get_document_string(&username, &password) {
-            Ok(document_string) => {
-                let calendar = make_schedule(&document_string, &summary).unwrap();
-
-                println!("Saving schedule...");
-                match std::fs::File::create(&filename) {
-                    Ok(mut output) => {
-                        write!(output, "{}", calendar).unwrap();
-                        println!("Done.");
-                    }
-                    Err(error) => {
-                        println!("Failed to save schedule: {}. Trying again later.", error)
-                    }
-                }
-            }
-            Err(error) => println!("Failed to get schedule: {}, trying again later.", error),
+        if !first {
+            println!("Waiting 1 hour...");
+            std::thread::sleep(std::time::Duration::from_secs(3600));
+        } else {
+            first = false;
         }
 
-        println!("Waiting 1 hour...");
-        std::thread::sleep(std::time::Duration::from_secs(3600));
+        let document_string = get_document_string(&username, &password);
+        if let Err(error) = document_string {
+            println!("Failed to reach JouwLoon: {error}. Trying again later.");
+            continue;
+        }
+
+        let calendar = make_schedule(&document_string.unwrap(), &summary);
+        if let Err(error) = calendar {
+            println!("Failed to make schedule: {error}. Trying again later.");
+            continue;
+        }
+
+        println!("Saving schedule...");
+        let file = std::fs::File::create(&filename);
+        if let Err(error) = calendar {
+            println!("Failed to create schedule file: {error}. Trying again later.");
+            continue;
+        }
+
+        if let Err(error) = write!(file.unwrap(), "{}", calendar.unwrap()) {
+            println!("Failed to write to schedule file: {error}. Trying again later.");
+            continue;
+        }
+        println!("Done.");
     });
 
     loop {
@@ -105,13 +119,16 @@ fn make_schedule(document_string: &str, summary: &str) -> Result<Calendar, Box<d
     let work_days = document.select(&work_selector);
     for element in work_days {
         let element_str = element.html();
-        let event = parse_work_day(&element_str, &summary);
-        calendar.push(event);
+        match parse_work_day(&element_str, &summary) {
+            Ok(event) => {
+                calendar.push(event);
+            }
+            Err(error) => println!("Failed to parse work day: {}. Skipping.", error),
+        }
     }
     println!("Done.");
 
     for (begin_datetime_str, end_datetime_str) in custom_event::get()? {
-        // FIXME: error handling
         let begin_datetime =
             NaiveDateTime::parse_from_str(&begin_datetime_str, "%Y-%m-%d %H:%M:%S")?;
         let end_datetime = NaiveDateTime::parse_from_str(&end_datetime_str, "%Y-%m-%d %H:%M:%S")?;
@@ -127,49 +144,47 @@ fn make_schedule(document_string: &str, summary: &str) -> Result<Calendar, Box<d
     Ok(calendar)
 }
 
-fn parse_work_day(element_str: &str, summary: &str) -> Event {
-    let date_regex = regex::Regex::new(r"detail\((\d*),(\d*),(\d*)\);").unwrap();
-    let Some((_, [year, month, day])) = date_regex.captures(element_str).map(|caps| caps.extract())
-    else {
-        panic!("No date found!");
-    };
+fn parse_work_day(element_str: &str, summary: &str) -> Result<Event, Box<dyn Error>> {
+    static DATE_REGEX: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"detail\((\d*),(\d*),(\d*)\);").unwrap());
+    let (_, [year, month, day]) = DATE_REGEX
+        .captures(element_str)
+        .map(|caps| caps.extract())
+        .ok_or("Unable to find date.")?;
 
-    let times_regex = regex::Regex::new(r"(\d*):(\d*)-<br>(\d*):(\d*)").unwrap();
-    let Some((_, [begin_hours, begin_minutes, end_hours, end_minutes])) =
-        times_regex.captures(element_str).map(|caps| caps.extract())
-    else {
-        panic!("No times found!");
-    };
+    static TIME_REGEX: Lazy<Regex> =
+        Lazy::new(|| Regex::new(r"(\d*):(\d*)-<br>(\d*):(\d*)").unwrap());
+    let (_, [begin_hours, begin_minutes, end_hours, end_minutes]) = TIME_REGEX
+        .captures(element_str)
+        .map(|caps| caps.extract())
+        .ok_or("Unable to find times.")?;
 
     let mut date = NaiveDate::from_ymd_opt(
-        year.parse::<i32>().unwrap(),
-        month.parse::<u32>().unwrap(),
-        day.parse::<u32>().unwrap(),
+        year.parse::<i32>()?,
+        month.parse::<u32>()?,
+        day.parse::<u32>()?,
     )
-    .unwrap();
+    .ok_or("Invalid date.")?;
 
     let begin_time = NaiveTime::from_hms_opt(
-        begin_hours.parse::<u32>().unwrap(),
-        begin_minutes.parse::<u32>().unwrap(),
+        begin_hours.parse::<u32>()?,
+        begin_minutes.parse::<u32>()?,
         0,
     )
-    .unwrap();
+    .ok_or("Invalid begin time.")?;
     let begin_datetime = NaiveDateTime::new(date, begin_time);
 
-    let end_time = NaiveTime::from_hms_opt(
-        end_hours.parse::<u32>().unwrap(),
-        end_minutes.parse::<u32>().unwrap(),
-        0,
-    )
-    .unwrap();
+    let end_time =
+        NaiveTime::from_hms_opt(end_hours.parse::<u32>()?, end_minutes.parse::<u32>()?, 0)
+            .ok_or("Invalid end time.")?;
     if end_time < begin_time {
         date += chrono::TimeDelta::days(1);
     }
     let end_datetime = NaiveDateTime::new(date, end_time);
 
-    Event::new()
+    Ok(Event::new()
         .summary(summary)
         .starts(begin_datetime)
         .ends(end_datetime)
-        .done()
+        .done())
 }
