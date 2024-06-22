@@ -123,23 +123,31 @@ fn stdin_read_int<T: std::str::FromStr + std::fmt::Display>(prompt: &str, defaul
     }
 }
 
-// TODO: check for valid date
 fn stdin_get_date_time() -> NaiveDateTime {
     let now = chrono::Local::now();
 
-    // FIXME: error handling
-    let date = NaiveDate::from_ymd_opt(
-        stdin_read_int(&"Year", now.year()),
-        stdin_read_int(&"Month", now.month()),
-        stdin_read_int(&"Day", now.day()),
-    )
-    .unwrap();
-    let time = chrono::NaiveTime::from_hms_opt(
-        stdin_read_int(&"Hour", now.hour()),
-        stdin_read_int(&"Minutes", 0),
-        0,
-    )
-    .unwrap();
+    let date: NaiveDate = loop {
+        if let Some(date) = NaiveDate::from_ymd_opt(
+            stdin_read_int(&"Year", now.year()),
+            stdin_read_int(&"Month", now.month()),
+            stdin_read_int(&"Day", now.day()),
+        ) {
+            break date;
+        }
+        println!("That date is invalid, please try again.");
+    };
+
+    let time = loop {
+        if let Some(time) = chrono::NaiveTime::from_hms_opt(
+            stdin_read_int(&"Hour", now.hour()),
+            stdin_read_int(&"Minutes", 0),
+            0,
+        ) {
+            break time;
+        }
+        println!("That time is invalid, please try again.");
+    };
+
     chrono::NaiveDateTime::new(date, time)
 }
 
