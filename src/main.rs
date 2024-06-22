@@ -31,7 +31,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         filename += "schedule.ics";
     }
 
-    std::thread::spawn(move || {
+    std::thread::spawn(move || loop {
         match get_document_string(&username, &password) {
             Ok(document_string) => {
                 let calendar = make_schedule(&document_string, &summary).unwrap();
