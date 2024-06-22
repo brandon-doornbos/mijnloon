@@ -8,26 +8,44 @@ use std::io::prelude::*;
 mod custom_event;
 mod util;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     let stdin = std::io::stdin();
 
-    println!("Please enter your JouwLoon username:");
     let mut username = String::new();
-    stdin.read_line(&mut username)?;
+    loop {
+        println!("Please enter your JouwLoon username:");
+        match stdin.read_line(&mut username) {
+            Ok(_) => break,
+            Err(error) => println!("That didn't work: {error}, try again please."),
+        }
+        username.clear();
+    }
 
     let password = rpassword::prompt_password("Password: ").unwrap();
 
-    println!("Calendar event title (enter for default, \"Werken\"):");
     let mut summary = String::new();
-    stdin.read_line(&mut summary)?;
+    loop {
+        println!("Calendar event title (enter for default, \"Werken\"):");
+        match stdin.read_line(&mut summary) {
+            Ok(_) => break,
+            Err(error) => println!("That didn't work: {error}, try again please."),
+        }
+        summary.clear();
+    }
     summary = summary.trim().to_owned();
     if summary.is_empty() {
         summary += "Werken";
     }
 
-    println!("Filename to save (enter for default, \"schedule.ics\"):");
     let mut filename = String::new();
-    stdin.read_line(&mut filename)?;
+    loop {
+        println!("Filename to save (enter for default, \"schedule.ics\"):");
+        match stdin.read_line(&mut filename) {
+            Ok(_) => break,
+            Err(error) => println!("That didn't work: {error}, try again please."),
+        }
+        filename.clear();
+    }
     filename = filename.trim().to_owned();
     if filename.is_empty() {
         filename += "schedule.ics";
@@ -70,11 +88,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     loop {
         let mut command = String::new();
-        stdin.read_line(&mut command)?;
+        stdin.read_line(&mut command).ok();
 
         match command.trim() {
-            "n" => custom_event::new()?,
-            "r" => custom_event::remove()?,
+            "n" => custom_event::new(),
+            "r" => custom_event::remove(),
             _ => {
                 println!("Unknown command, use 'n' to manually add an event or 'r' to remove one.");
                 continue;

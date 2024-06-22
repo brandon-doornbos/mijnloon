@@ -8,66 +8,70 @@ pub static PATH: &str = "custom_events.json";
 pub fn get() -> Result<Vec<(String, String)>, Box<dyn Error>> {
     println!("Getting custom events.");
 
-    let options = FileOptions::new()
-        .write(true)
-        .create(true)
-        .append(true)
-        .read(true);
+    let options = FileOptions::new().read(true);
 
-    // FIXME: error handling
-    let mut lock = match FileLock::lock(PATH, true, options) {
-        Ok(lock) => lock,
-        Err(err) => panic!("Error getting file lock: {}", err),
-    };
+    let mut lock = FileLock::lock(PATH, true, options)?;
 
     let mut custom_events_str = String::new();
-    // FIXME: error handling
     lock.file.read_to_string(&mut custom_events_str)?;
 
-    let custom_events: Vec<(String, String)> =
-        serde_json::from_str(&custom_events_str).unwrap_or_default();
+    let custom_events: Vec<(String, String)> = serde_json::from_str(&custom_events_str)?;
 
     println!("Done.");
     Ok(custom_events)
 }
 
-pub fn new() -> Result<(), Box<dyn Error>> {
+fn write(custom_events: &Vec<(String, String)>) -> Result<(), Box<dyn Error>> {
+    let options = FileOptions::new().write(true).create(true).append(true);
+    let mut lock = FileLock::lock(PATH, true, options)?;
+
+    lock.file.set_len(0)?;
+
+    let json = serde_json::to_string(&custom_events)?;
+    lock.file.write_all(json.as_bytes())?;
+
+    Ok(())
+}
+
+pub fn new() {
     println!("Adding new event.");
 
-    let mut custom_events = get()?;
+    let mut custom_events = match get() {
+        Ok(custom_events) => custom_events,
+        Err(error) => {
+            println!("Failed to get custom events: {error}. Please try again.");
+            return;
+        }
+    };
 
     println!("Please enter the date and time for the start of the event:");
     let custom_begin_datetime_str = stdin_get_date_time().to_string();
+
     println!("Please enter the date and time for the end of the event:");
     let custom_end_datetime_str = stdin_get_date_time().to_string();
 
     custom_events.push((custom_begin_datetime_str, custom_end_datetime_str));
 
-    let options = FileOptions::new().write(true).create(true).append(true);
-
-    // FIXME: error handling
-    let mut lock = match FileLock::lock(PATH, true, options) {
-        Ok(lock) => lock,
-        Err(err) => panic!("Error getting file lock: {}", err),
-    };
-
-    // FIXME: error handling
-    lock.file.set_len(0)?;
-
-    // FIXME: error handling
-    let json = serde_json::to_string(&custom_events)?;
-    lock.file.write_all(json.as_bytes())?;
+    if let Err(error) = write(&custom_events) {
+        println!("Failed to write custom events to file: {error}. Please try again");
+        return;
+    }
 
     println!("Done.");
-    Ok(())
 }
 
-pub fn remove() -> Result<(), Box<dyn Error>> {
-    let mut custom_events = get()?;
+pub fn remove() {
+    let mut custom_events = match get() {
+        Ok(custom_events) => custom_events,
+        Err(error) => {
+            println!("Failed to get custom events: {error}. Please try again.");
+            return;
+        }
+    };
 
     if custom_events.is_empty() {
         println!("No custom events found!");
-        return Ok(());
+        return;
     }
 
     let mut i = 0;
@@ -77,21 +81,10 @@ pub fn remove() -> Result<(), Box<dyn Error>> {
     }
     custom_events.remove(stdin_read_int("Which event would you like to remove", 0));
 
-    let options = FileOptions::new().write(true).create(true).append(true);
-
-    // FIXME: error handling
-    let mut lock = match FileLock::lock(PATH, true, options) {
-        Ok(lock) => lock,
-        Err(err) => panic!("Error getting file lock: {}", err),
-    };
-
-    // FIXME: error handling
-    lock.file.set_len(0)?;
-
-    // FIXME: error handling
-    let json = serde_json::to_string(&custom_events)?;
-    lock.file.write_all(json.as_bytes())?;
+    if let Err(error) = write(&custom_events) {
+        println!("Failed to write custom events to file: {error}. Please try again");
+        return;
+    }
 
     println!("Done.");
-    Ok(())
 }
