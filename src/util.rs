@@ -30,20 +30,21 @@ where
     let mut buffer = String::new();
     loop {
         println!("{} ({}):", prompt, default);
-        buffer.clear();
 
         if let Err(error) = stdin.read_line(&mut buffer) {
             println!("Something went wrong: {error}. Please try again.");
             continue;
         }
 
-        if let Ok(value) = buffer.trim().parse::<T>() {
+        let trimmed = buffer.trim();
+        if let Ok(value) = trimmed.parse::<T>() {
             return value;
-        } else if buffer.trim().is_empty() {
+        } else if trimmed.is_empty() {
             return default;
         }
 
         println!("That value is invalid. Please try again.");
+        buffer.clear();
     }
 }
 

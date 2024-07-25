@@ -74,6 +74,8 @@ pub fn remove() {
         return;
     }
 
+    custom_events.sort_unstable();
+
     let mut i = 0;
     for (begin, end) in custom_events.iter() {
         println!("{}: {} - {}", i, begin, end);
