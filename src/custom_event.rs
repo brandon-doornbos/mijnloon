@@ -1,4 +1,4 @@
-use crate::util::{stdin_get_date_time, stdin_read_int};
+use crate::util::{stdin_get_date_time, stdin_read_int_ranged};
 use file_lock::{FileLock, FileOptions};
 use std::error::Error;
 use std::io::prelude::*;
@@ -79,7 +79,11 @@ pub fn remove() {
         println!("{}: {} - {}", i, begin, end);
         i += 1;
     }
-    custom_events.remove(stdin_read_int("Which event would you like to remove", 0));
+    custom_events.remove(stdin_read_int_ranged(
+        "Which event would you like to remove",
+        0..=i - 1,
+        0,
+    ));
 
     if let Err(error) = write(&custom_events) {
         println!("Failed to write custom events to file: {error}. Please try again");

@@ -43,7 +43,41 @@ where
             return default;
         }
 
-        println!("That value is invalid, please try again.");
+        println!("That value is invalid. Please try again.");
+    }
+}
+
+pub fn stdin_read_int_ranged<T>(prompt: &str, range: std::ops::RangeInclusive<T>, default: T) -> T
+where
+    T: std::str::FromStr + std::fmt::Display + std::cmp::PartialOrd,
+{
+    let stdin = std::io::stdin();
+    let mut buffer = String::new();
+    loop {
+        println!(
+            "{} ({}-{}, default: {}):",
+            prompt,
+            range.start(),
+            range.end(),
+            default
+        );
+
+        if let Err(error) = stdin.read_line(&mut buffer) {
+            println!("Something went wrong: {error}. Please try again.");
+            continue;
+        }
+
+        let trimmed = buffer.trim();
+        if let Ok(value) = trimmed.parse::<T>() {
+            if range.contains(&value) {
+                return value;
+            }
+        } else if trimmed.is_empty() {
+            return default;
+        }
+
+        println!("That value is invalid or out of range. Please try again.");
+        buffer.clear();
     }
 }
 
