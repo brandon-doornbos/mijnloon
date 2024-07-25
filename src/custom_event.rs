@@ -1,4 +1,5 @@
 use crate::util::{stdin_get_date_time, stdin_read_int_ranged};
+use chrono::Datelike;
 use file_lock::{FileLock, FileOptions};
 use std::error::Error;
 use std::io::prelude::*;
@@ -93,4 +94,25 @@ pub fn remove() {
     }
 
     println!("Done.");
+}
+
+pub fn purge() -> Result<(), Box<dyn Error>> {
+    println!("Purging old custom events.");
+    let mut custom_events = get()?;
+
+    if custom_events.is_empty() {
+        println!("No custom events found!");
+        return Ok(());
+    }
+
+    let now = chrono::Local::now().naive_local();
+    custom_events.retain(|(begin, _)| {
+        let datetime = chrono::NaiveDateTime::parse_from_str(begin, "%Y-%m-%d %H:%M:%S").unwrap();
+        !(datetime < now && datetime.month() < now.month() - 1)
+    });
+
+    write(&custom_events)?;
+
+    println!("Done.");
+    Ok(())
 }

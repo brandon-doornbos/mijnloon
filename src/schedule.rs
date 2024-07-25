@@ -38,6 +38,8 @@ fn make(document_string: &str, summary: &str) -> Result<Calendar, Box<dyn Error>
     }
     println!("Done.");
 
+    crate::custom_event::purge()?;
+
     for (begin_datetime_str, end_datetime_str) in crate::custom_event::get()? {
         let begin_datetime =
             NaiveDateTime::parse_from_str(&begin_datetime_str, "%Y-%m-%d %H:%M:%S")?;
