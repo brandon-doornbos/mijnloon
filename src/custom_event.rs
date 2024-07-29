@@ -9,21 +9,24 @@ pub static PATH: &str = "custom_events.json";
 pub fn get() -> Result<Vec<(String, String)>, Box<dyn Error>> {
     println!("Getting custom events.");
 
-    let options = FileOptions::new().read(true);
-
+    let options = FileOptions::new().read(true).write(true).create(true);
     let mut lock = FileLock::lock(PATH, true, options)?;
 
     let mut custom_events_str = String::new();
     lock.file.read_to_string(&mut custom_events_str)?;
 
-    let custom_events: Vec<(String, String)> = serde_json::from_str(&custom_events_str)?;
+    let custom_events: Vec<(String, String)> = if custom_events_str.is_empty() {
+        vec![]
+    } else {
+        serde_json::from_str(&custom_events_str)?
+    };
 
     println!("Done.");
     Ok(custom_events)
 }
 
 fn write(custom_events: &Vec<(String, String)>) -> Result<(), Box<dyn Error>> {
-    let options = FileOptions::new().write(true).create(true).append(true);
+    let options = FileOptions::new().write(true).create(true);
     let mut lock = FileLock::lock(PATH, true, options)?;
 
     lock.file.set_len(0)?;
