@@ -2,8 +2,10 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use icalendar::{Calendar, Component, Event, EventLike};
 use once_cell::sync::Lazy;
 use regex::Regex;
+use reqwest::cookie::Jar;
 use std::error::Error;
 use std::io::prelude::*;
+use std::sync::Arc;
 
 pub fn write(
     username: &str,
@@ -11,8 +13,9 @@ pub fn write(
     summary: &str,
     filename: &str,
 ) -> Result<(), Box<dyn Error>> {
-    let document_string = get_document_string(username, password)?;
-    let calendar = make(&document_string, summary)?;
+    let cookie_jar = Arc::new(Jar::default());
+    let document_string = get_document_string(username, password, cookie_jar.clone())?;
+    let calendar = make(&document_string, summary, cookie_jar)?;
 
     println!("Saving schedule...");
     let mut file = std::fs::File::create(filename)?;
@@ -22,7 +25,11 @@ pub fn write(
     Ok(())
 }
 
-fn make(document_string: &str, summary: &str) -> Result<Calendar, Box<dyn Error>> {
+fn make(
+    document_string: &str,
+    summary: &str,
+    cookie_jar: Arc<Jar>,
+) -> Result<Calendar, Box<dyn Error>> {
     let mut calendar = Calendar::new();
     let timezone = iana_time_zone::get_timezone()?;
     calendar.timezone(&timezone);
@@ -33,7 +40,7 @@ fn make(document_string: &str, summary: &str) -> Result<Calendar, Box<dyn Error>
     let work_days = document.select(&work_selector);
     for element in work_days {
         let element_str = element.html();
-        let event = parse_work_day(&element_str, &summary)?;
+        let event = parse_work_day(&element_str, &summary, cookie_jar.clone())?;
         calendar.push(event);
     }
     println!("Done.");
@@ -56,9 +63,13 @@ fn make(document_string: &str, summary: &str) -> Result<Calendar, Box<dyn Error>
     Ok(calendar)
 }
 
-fn get_document_string(username: &str, password: &str) -> Result<String, Box<dyn Error>> {
+fn get_document_string(
+    username: &str,
+    password: &str,
+    cookie_jar: Arc<Jar>,
+) -> Result<String, Box<dyn Error>> {
     let client = reqwest::blocking::Client::builder()
-        .cookie_store(true)
+        .cookie_provider(cookie_jar)
         .build()?;
 
     println!("Logging in...");
@@ -81,7 +92,36 @@ fn get_document_string(username: &str, password: &str) -> Result<String, Box<dyn
     Ok(body)
 }
 
-fn parse_work_day(element_str: &str, summary: &str) -> Result<Event, Box<dyn Error>> {
+fn get_work_day_description(
+    year: &str,
+    month: &str,
+    day: &str,
+    cookie_jar: Arc<Jar>,
+) -> Result<String, Box<dyn Error>> {
+    let client = reqwest::blocking::ClientBuilder::new()
+        .cookie_provider(cookie_jar)
+        .build()?;
+    let response = client
+        .get(format!(
+            "https://jouwloon.nl/index.php/rooster/detail/{year}-{month}-{day}"
+        ))
+        .send()?
+        .text()?;
+
+    static DESCRIPTION_REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r">\((.+?)\)<").unwrap());
+    let (_, [description]) = DESCRIPTION_REGEX
+        .captures(&response)
+        .map(|caps| caps.extract())
+        .ok_or("Unable to find description.")?;
+
+    return Ok(description.to_string());
+}
+
+fn parse_work_day(
+    element_str: &str,
+    summary: &str,
+    cookie_jar: Arc<Jar>,
+) -> Result<Event, Box<dyn Error>> {
     static DATE_REGEX: Lazy<Regex> =
         Lazy::new(|| Regex::new(r"detail\((\d*),(\d*),(\d*)\);").unwrap());
     let (_, [year, month, day]) = DATE_REGEX
@@ -119,8 +159,17 @@ fn parse_work_day(element_str: &str, summary: &str) -> Result<Event, Box<dyn Err
     }
     let end_datetime = NaiveDateTime::new(date, end_time);
 
+    let description = match get_work_day_description(year, month, day, cookie_jar) {
+        Ok(description) => description,
+        Err(error) => {
+            println!("Failed to get description for an event: {error}. Continuing anyway.");
+            String::new()
+        }
+    };
+
     Ok(Event::new()
         .summary(summary)
+        .description(&description)
         .starts(begin_datetime)
         .ends(end_datetime)
         .done())
