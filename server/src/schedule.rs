@@ -16,6 +16,9 @@ pub fn write(config: &Config) -> Result<(), Box<dyn Error>> {
     println!("{}: Saving schedule...", config.username);
     for (i, calendar) in calendars.iter().enumerate() {
         let mut path = std::path::PathBuf::from("./ics");
+        if !path.exists() {
+            std::fs::create_dir(&path)?;
+        }
         if i == 0 {
             path.push(&config.username);
         } else {
