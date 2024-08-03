@@ -1,0 +1,18 @@
+# JouwLoon username, must be the same as the filename
+username = ""
+
+# JouwLoon password
+password = ""
+
+# Calendar event title, specify multiple to generate multiple .ics files with different event titles
+# The first .ics file is always "username.ics", after that it is "username1.ics", "username2.ics" etc.
+summaries = [ "" ]
+
+# Whether to get the descriptions from JouwLoon
+descriptions = false
+
+# Renew the .ics file every <frequency> seconds
+frequency = 3600
+
+# Used by the program to read and store manually specified custom events
+custom_events = []
