@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="nl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="https://jouwloon.nl/assets/favicon.ico">
+    <title>MijnLoon</title>
+    <link href="src/style.css" rel="stylesheet">
+    <!-- "@fullcalendar/icalendar": "https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.15/index.js", -->
+    <script type="importmap">
+      {
+        "imports": {
+          "preact": "https://cdn.jsdelivr.net/npm/preact@10.23.2/dist/preact.mjs",
+          "preact/compat": "https://cdn.jsdelivr.net/npm/preact@10.23.2/compat/dist/compat.mjs",
+          "preact/hooks": "https://cdn.jsdelivr.net/npm/preact@10.23.2/hooks/dist/hooks.mjs",
+          "@fullcalendar/core": "https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/index.js",
+          "@fullcalendar/core/index.js": "https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/index.js",
+          "@fullcalendar/core/internal.js": "https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/internal.js",
+          "@fullcalendar/core/preact.js": "https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/preact.js",
+          "@fullcalendar/icalendar": "./src/fullcalendar_icalendar.js",
+          "@fullcalendar/icalendar/internal.js": "https://cdn.jsdelivr.net/npm/@fullcalendar/icalendar@6.1.15/internal.js",
+          "@fullcalendar/interaction": "https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.15/index.js",
+          "@fullcalendar/interaction/internal.js": "https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.15/internal.js",
+          "@fullcalendar/timegrid": "https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.15/index.js",
+          "@fullcalendar/timegrid/internal.js": "https://cdn.jsdelivr.net/npm/@fullcalendar/timegrid@6.1.15/internal.js",
+          "@fullcalendar/daygrid": "https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.15/index.js",
+          "@fullcalendar/daygrid/internal.js": "https://cdn.jsdelivr.net/npm/@fullcalendar/daygrid@6.1.15/internal.js",
+          "ical.js": "https://cdn.jsdelivr.net/npm/ical.js@2.0.1/+esm"
+        }
+      }
+    </script>
+    <script type="module" src="src/main.js"></script>
+</head>
+
+<body>
+    <div id="background"></div>
+    <div id="background-2"></div>
+    <nav id="top-bar">
+        <div id="nav-left">
+            <a onclick="schedule()" title="Rooster">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                    <path fill="currentColor"
+                        d="M26 4h-4V2h-2v2h-8V2h-2v2H6c-1.1 0-2 .9-2 2v20c0 1.1.9 2 2 2h20c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2m0 22H6V12h20zm0-16H6V6h4v2h2V6h8v2h2V6h4z" />
+                </svg>
+            </a>
+        </div>
+        <div id="nav-center">
+            <a id="title" href="/">MijnLoon</a>
+        </div>
+        <div id="nav-right">
+            <a onclick="toggleLogin()" title="In- of uitloggen">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+                    <path fill="currentColor"
+                        d="M16 4a5 5 0 1 1-5 5a5 5 0 0 1 5-5m0-2a7 7 0 1 0 7 7a7 7 0 0 0-7-7m10 28h-2v-5a5 5 0 0 0-5-5h-6a5 5 0 0 0-5 5v5H6v-5a7 7 0 0 1 7-7h6a7 7 0 0 1 7 7z" />
+                </svg>
+            </a>
+        </div>
+    </nav>
+    <div id="center">
+        <div id="login">
+            <h1>Inloggen</h1>
+            <p>Vul hieronder je JouwLoon gebruikersnaam in om een profiel aan te maken op MijnLoon of je rooster te
+                bekijken om handmatig diensten te bewerken.</p>
+            <div id="login-form">
+                <div>
+                    <label for="login-username">Gebruikersnaam:</label>
+                    <input id="login-username" type="text" name="login-username" onkeypress="loginEnter(event)"
+                        required>
+                </div>
+                <button id="login-button" onclick="toggleLogin()">Log in</button>
+            </div>
+        </div>
+        <div id="register" style="display: none;">
+            <h1>Registreren</h1>
+            <div>
+                <p>Vul hieronder je JouwLoon gegevens in om een link te krijgen naar je rooster in ics formaat, om
+                    te importeren naar je eigen agenda.</p>
+            </div>
+            <div id="form">
+                <div>
+                    <label for="username">Gebruikersnaam:</label>
+                    <input id="username" type="text" name="username">
+                </div>
+                <div>
+                    <label for="password">Wachtwoord:</label>
+                    <input id="password" type="password" name="password">
+                </div>
+                <div id="summaries">
+                    <div id="add-summary-container">
+                        <label id="add-summary-label" for="add-summary" onclick="summaryInfo()">Evenement
+                            titels &#9432;:</label>
+                        <div id="add-summary-spacer"></div>
+                        <input id="add-summary-button" type="button" onclick="newSummary()" name="add-summary"
+                            value="+">
+                    </div>
+                    <div>
+                        <input type="text" value="Werken">
+                    </div>
+                </div>
+                <button id="register-button" onclick="submit()">Verstuur</button>
+            </div>
+        </div>
+        <div id="schedule" style="display: none;">
+            <div id="calendar"></div>
+        </div>
+    </div>
+    <footer>Brandon Doornbos &#169; 2024</footer>
+</body>
+
+</html>

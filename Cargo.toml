@@ -1,3 +1,16 @@
-[workspace]
-members = [ "common", "manager", "server" ]
-resolver = "2"
+[package]
+name = "mijnloon"
+version = "3.0.0"
+edition = "2021"
+
+[dependencies]
+chrono = "0.4.38"
+confy = "0.6.1"
+file-lock = "2.1.11"
+iana-time-zone = "0.1.61"
+icalendar = "0.16.9"
+json = "0.12.4"
+reqwest = { version = "0.12.9", features = ["blocking", "cookies"] }
+rocket = { version = "0.5.1", features = [ "json" ] }
+scraper = "0.21.0"
+serde = { version = "1.0.215", features = [ "derive" ] }
