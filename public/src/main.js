@@ -172,27 +172,6 @@ export async function toggleLogin() {
         document.getElementById("username").value = username;
         setDisplayed("register");
     }
-
-    // fetch("/login", { method: "POST", body: username.value })
-    //     .then((response) => response.text())
-    //     .then((text) => {
-    //         console.log(text);
-    //         let custom_events = [[]];
-    //         for (part of text.split(",")) {
-    //             let subpart = part.split("\"");
-    //             console.log(subpart);
-    //             if (subpart.length === 1) {
-    //                 custom_events.push([]);
-    //             } else {
-    //                 custom_events[custom_events.length - 1].push(subpart[1]);
-    //             }
-    //         }
-    //         custom_events.splice(custom_events.length - 2);
-    //         console.log(custom_events);
-    //     });
-    // fetch(`/${username.value}.ics`, { method: "GET" })
-    //     .then((response) => response.text())
-    //     .then((text) => console.log(text));
 }
 
 export function summaryInfo() {
