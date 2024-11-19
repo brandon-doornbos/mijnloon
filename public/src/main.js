@@ -123,13 +123,14 @@ export function newSummary() {
     let buttonInput = document.createElement("input");
     buttonInput.type = "button";
     buttonInput.value = "-";
+    buttonInput.className = "remove-summary-button";
 
     let div = document.createElement("div");
     div.id = Math.random() * (2 ** 64);
     buttonInput.onclick = () => {
         document.getElementById(div.id).remove();
     }
-    div.style = "display: flex; gap: 5px;";
+    div.className = "remove-summary";
     div.append(textInput);
     div.append(buttonInput);
 

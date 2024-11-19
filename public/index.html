@@ -69,6 +69,7 @@
                         required>
                 </div>
                 <button id="login-button" onclick="toggleLogin()">Log in</button>
+                <button class="secondary-button" id="register-instead-button">Registreren</button>
             </div>
         </div>
         <div id="register" style="display: none;">
@@ -87,18 +88,15 @@
                     <input id="password" type="password" name="password">
                 </div>
                 <div id="summaries">
-                    <div id="add-summary-container">
-                        <label id="add-summary-label" for="add-summary" onclick="summaryInfo()">Evenement
-                            titels &#9432;:</label>
-                        <div id="add-summary-spacer"></div>
-                        <input id="add-summary-button" type="button" onclick="newSummary()" name="add-summary"
-                            value="+">
-                    </div>
+                    <label id="add-summary-label" onclick="summaryInfo()">Evenement
+                        titels &#9432;:</label>
                     <div>
                         <input type="text" value="Werken">
+                        <input id="add-summary-button" type="button" onclick="newSummary()" value="+">
                     </div>
                 </div>
-                <button id="register-button" onclick="submit()">Verstuur</button>
+                <button id="register-button" onclick="submit()">Registreer</button>
+                <button class="secondary-button">Inloggen</button>
             </div>
         </div>
         <div id="schedule" style="display: none;">

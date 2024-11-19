@@ -135,24 +135,19 @@ svg {
     border-radius: var(--border-radius);
 }
 
-#summaries {
-    display: flex;
-    flex-direction: column;
-}
-
 #form {
     margin: 10px;
 }
 
 #login {
     display: inline-block;
+    padding: 10px;
+    max-width: 450px;
     border-radius: var(--border-radius);
     background-color: var(--color-surface-100);
 }
 
 #login-form {
-    display: flex;
-    gap: 10px;
     margin: 15px;
 }
 
@@ -162,6 +157,8 @@ svg {
 
 #register {
     display: inline-block;
+    padding: 10px;
+    max-width: 450px;
     border-radius: var(--border-radius);
     background-color: var(--color-surface-100);
 }
@@ -175,7 +172,6 @@ label {
 
 input[type=text],
 input[type=password] {
-    width: 100%;
     font-size: 16px;
     padding: 5px;
     border-radius: 5px;
@@ -197,7 +193,7 @@ input[type=password]:focus {
 button,
 input[type=button],
 input[type=submit] {
-    padding: 7px 15px 7px 15px;
+    padding: 12px 15px 12px 15px;
     border-radius: var(--border-radius);
     border: 0;
     font-size: 16px;
@@ -207,24 +203,32 @@ input[type=submit] {
     background-color: var(--color-primary-500);
 }
 
+.secondary-button {
+    background-color: transparent;
+    color: darkgrey;
+}
+
 button:hover,
 input[type=button]:hover,
 input[type=submit]:hover {
+    color: black;
     background-color: var(--color-primary-400);
 }
 
 button:active,
 input[type=button]:active,
 input[type=submit]:active {
+    color: black;
     background-color: var(--color-primary-300);
+}
+
+#summaries {
+    display: flex;
+    flex-direction: column;
 }
 
 #summaries input {
     margin-bottom: 5px;
-}
-
-#add-summary-container {
-    display: flex;
 }
 
 #add-summary-label {
@@ -232,25 +236,27 @@ input[type=submit]:active {
     cursor: help;
 }
 
-#add-summary-spacer {
-    flex: 1;
-}
-
 #add-summary-button {
-    margin: 5px;
+    padding: 7px 14px;
 }
 
-#register-button {
-    padding-top: 12px;
-    padding-bottom: 12px;
+.remove-summary {
+    display: flex;
+    gap: 5px;
+}
+
+.remove-summary-button {
+    padding: 7px 15px !important;
+}
+
+/* SCHEDULE */
+
+#schedule {
+    width: 90vw;
 }
 
 .event-description {
     top: 18px;
-}
-
-#schedule {
-    width: 90vw;
 }
 
 .fc-event-title-container {
