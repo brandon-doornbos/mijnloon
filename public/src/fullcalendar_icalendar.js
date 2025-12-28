@@ -1,6 +1,6 @@
 import { createPlugin } from '@fullcalendar/core/index.js';
 import { addDays } from '@fullcalendar/core/internal.js';
-import { default as ICAL } from 'ical.js';
+import ICAL from 'ical.js';
 
 /* eslint-disable */
 class IcalExpander {
@@ -152,16 +152,20 @@ function expandICalEvents(iCalExpander, range) {
     // we can query startDate/endDate.isDate. More efficient to avoid formatting/reparsing.
     // single events
     for (let iCalEvent of iCalRes.events) {
-        expanded.push(Object.assign(Object.assign({}, buildNonDateProps(iCalEvent)), { start: iCalEvent.startDate.toString(), end: (specifiesEnd(iCalEvent) && iCalEvent.endDate)
+        expanded.push(Object.assign(Object.assign({}, buildNonDateProps(iCalEvent)), {
+            start: iCalEvent.startDate.toString(), end: (specifiesEnd(iCalEvent) && iCalEvent.endDate)
                 ? iCalEvent.endDate.toString()
-                : null }));
+                : null
+        }));
     }
     // recurring event instances
     for (let iCalOccurence of iCalRes.occurrences) {
         let iCalEvent = iCalOccurence.item;
-        expanded.push(Object.assign(Object.assign({}, buildNonDateProps(iCalEvent)), { start: iCalOccurence.startDate.toString(), end: (specifiesEnd(iCalEvent) && iCalOccurence.endDate)
+        expanded.push(Object.assign(Object.assign({}, buildNonDateProps(iCalEvent)), {
+            start: iCalOccurence.startDate.toString(), end: (specifiesEnd(iCalEvent) && iCalOccurence.endDate)
                 ? iCalOccurence.endDate.toString()
-                : null }));
+                : null
+        }));
     }
     return expanded;
 }

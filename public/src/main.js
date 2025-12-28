@@ -13,10 +13,13 @@ document.addEventListener("DOMContentLoaded", () => {
         updateSchedule();
     }
 
+    window.login = login;
     window.loginEnter = loginEnter;
-    window.toggleLogin = toggleLogin;
+    window.loginInstead = loginInstead;
+    window.logout = logout;
     window.newSummary = newSummary;
     window.register = register;
+    window.registerInstead = registerInstead;
     window.schedule = schedule;
     window.setDisplayed = setDisplayed;
     window.submit = submit;
@@ -97,8 +100,8 @@ function updateSchedule() {
 }
 
 export function submit() {
-    let username = document.getElementById("username").value;
-    let password = document.getElementById("password").value;
+    let username = document.getElementById("register-username").value;
+    let password = document.getElementById("register-password").value;
     let data = {
         username,
         password,
@@ -144,18 +147,16 @@ export function loginEnter(event) {
     }
 }
 
-export async function toggleLogin() {
-    if (localStorage.getItem("user")) {
-        if (confirm(`Uitloggen uit: '${user}'?`)) {
-            localStorage.removeItem("user");
-            user = undefined;
-            setDisplayed("login");
-        }
-        return;
+export function logout() {
+    if (localStorage.getItem("user") && confirm(`Uitloggen uit: '${user}'?`)) {
+        localStorage.removeItem("user");
+        user = undefined;
     }
 
     setDisplayed("login");
+}
 
+export async function login() {
     let usernameElement = document.getElementById("login-username");
     let username = usernameElement.value;
     if (!usernameElement.validity.valid) {
@@ -170,13 +171,25 @@ export async function toggleLogin() {
         updateSchedule();
         setDisplayed("schedule");
     } else {
-        document.getElementById("username").value = username;
+        document.getElementById("register-username").value = username;
         setDisplayed("register");
     }
 }
 
+export function loginInstead() {
+    let usernameElement = document.getElementById("register-username");
+    document.getElementById("login-username").value = usernameElement.value;
+    setDisplayed("login");
+}
+
 export function summaryInfo() {
-    alert("Dit is de titel van elk evenement in je agenda. Je kan meerdere titels zetten om verschillende ics bestanden te genereren, bijvoorbeeld met de titel 'Werken' voor jezelf, en '<je naam> werken' voor een ouder of partner.")
+    alert("Dit is de titel van elk evenement in je agenda. Je kan meerdere titels zetten om verschillende ics bestanden te genereren, bijvoorbeeld met de titel 'Werken' voor jezelf, en '<je naam> werken' voor een ouder of partner.");
+}
+
+export function registerInstead() {
+    let usernameElement = document.getElementById("login-username");
+    document.getElementById("register-username").value = usernameElement.value;
+    setDisplayed("register");
 }
 
 export function register() {

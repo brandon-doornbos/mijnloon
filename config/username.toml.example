@@ -14,5 +14,8 @@ descriptions = false
 # Renew the .ics file every <frequency> seconds
 frequency = 3600
 
+# Used by the program to cache results
+events = []
+
 # Used by the program to read and store manually specified custom events
 custom_events = []
