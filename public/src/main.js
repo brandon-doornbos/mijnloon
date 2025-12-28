@@ -79,6 +79,46 @@ function updateSchedule() {
                 });
             }
         },
+        eventDrop: (info) => {
+            // let create = confirm(`Wil je een nieuwe shift toevoegen op ${startDate} van ${startTime} tot ${endTime}?`);
+
+            // if (create) {
+            fetch("/update", {
+                method: "POST",
+                body: JSON.stringify({
+                    username: user,
+                    orig_start: info.oldEvent.startStr,
+                    orig_end: info.oldEvent.endStr,
+                    start: info.event.startStr,
+                    end: info.event.endStr,
+                }),
+            }).then((response) => {
+                if (response.status === 200) {
+                    calendar.refetchEvents();
+                }
+            });
+            // }
+        },
+        eventResize: (info) => {
+            // let create = confirm(`Wil je een nieuwe shift toevoegen op ${startDate} van ${startTime} tot ${endTime}?`);
+
+            // if (create) {
+            fetch("/update", {
+                method: "POST",
+                body: JSON.stringify({
+                    username: user,
+                    orig_start: info.oldEvent.startStr,
+                    orig_end: info.oldEvent.endStr,
+                    start: info.event.startStr,
+                    end: info.event.endStr,
+                }),
+            }).then((response) => {
+                if (response.status === 200) {
+                    calendar.refetchEvents();
+                }
+            });
+            // }
+        },
         eventDidMount: ({ event, el }) => {
             let container = el.querySelector(".fc-event-title-container");
             let description = document.createElement("div");

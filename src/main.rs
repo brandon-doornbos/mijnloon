@@ -27,6 +27,16 @@ struct Event<'r> {
     end: &'r str,
 }
 
+#[derive(Deserialize)]
+#[serde(crate = "rocket::serde")]
+struct UpdateEvent<'r> {
+    username: &'r str,
+    orig_start: &'r str,
+    orig_end: &'r str,
+    start: &'r str,
+    end: &'r str,
+}
+
 fn make_ics(username: &str) {
     let path = Path::new("config").join(username).with_extension("toml");
 
@@ -94,6 +104,23 @@ fn new(data: Json<Event<'_>>) -> () {
     make_ics(data.username);
 }
 
+#[rocket::post("/update", data = "<data>")]
+fn update(data: Json<UpdateEvent<'_>>) -> () {
+    let orig_start = DateTime::parse_from_rfc3339(data.orig_start).unwrap();
+    let orig_end = DateTime::parse_from_rfc3339(data.orig_end).unwrap();
+    let start = DateTime::parse_from_rfc3339(data.start).unwrap();
+    let end = DateTime::parse_from_rfc3339(data.end).unwrap();
+    custom_event::update(
+        &data.username,
+        &orig_start.naive_local().to_string(),
+        &orig_end.naive_local().to_string(),
+        &start.naive_local(),
+        &end.naive_local(),
+    );
+
+    make_ics(data.username);
+}
+
 #[rocket::post("/remove", data = "<data>")]
 fn remove(data: Json<Event<'_>>) -> () {
     let start = DateTime::parse_from_rfc3339(data.start).unwrap();
@@ -138,6 +165,6 @@ fn rocket() -> _ {
 
     rocket::build().mount(
         "/",
-        rocket::routes![index, file, login, register, new, remove],
+        rocket::routes![index, file, login, register, new, update, remove],
     )
 }

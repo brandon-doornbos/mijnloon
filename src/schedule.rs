@@ -1,10 +1,19 @@
 use std::error::Error;
+use std::hash::{Hash, Hasher};
 use std::io::prelude::*;
 
 use crate::{config, config::Config, custom_event};
 use chrono::NaiveDateTime;
-use icalendar::{Calendar, Component, Event, EventLike};
+use icalendar::{Calendar, Component, Event as IEvent, EventLike};
 use reqwest::blocking::Client;
+
+#[derive(Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Event {
+    pub start_dt: String,
+    pub end_dt: String,
+    pub desc: Option<String>,
+    pub hash: Option<String>,
+}
 
 pub fn write(config: &mut Config) -> Result<(), Box<dyn Error>> {
     cache_events(config)?;
@@ -43,19 +52,27 @@ fn cache_events(config: &mut Config) -> Result<(), Box<dyn Error>> {
     config.events.clear();
     for day in json::parse(&schedule_json)?.members_mut() {
         for shift in day["roosterdienst"].members_mut() {
-            let description = shift["afdeling"]
+            let desc = shift["afdeling"]
                 .take_string()
                 .ok_or("This should be a string")?;
-            let start_dt = &shift["vanafDatum"]
+            let start_dt = shift["vanafDatum"]
                 .take_string()
                 .ok_or("This should be a datetime string")?;
-            let end_dt = &shift["totDatum"]
+            let end_dt = shift["totDatum"]
                 .take_string()
                 .ok_or("This should be a datetime string")?;
 
-            config
-                .events
-                .push((start_dt.to_string(), end_dt.to_string(), description));
+            let mut hasher = std::hash::DefaultHasher::new();
+            start_dt.hash(&mut hasher);
+            end_dt.hash(&mut hasher);
+            let hash = hasher.finish().to_string();
+
+            config.events.push(Event {
+                start_dt,
+                end_dt,
+                desc: Some(desc),
+                hash: Some(hash),
+            });
         }
     }
     let path = std::path::Path::new("config")
@@ -83,18 +100,27 @@ fn make(config: &Config) -> Result<Vec<Calendar>, Box<dyn Error>> {
         calendars.push(calendar);
     }
 
-    for event in &config.events {
-        let mut ical_event = Event::new()
-            .description(&event.2)
-            .starts(NaiveDateTime::parse_from_str(
-                &event.0,
-                "%Y-%m-%dT%H:%M:%S",
-            )?)
-            .ends(NaiveDateTime::parse_from_str(
-                &event.1,
-                "%Y-%m-%dT%H:%M:%S",
-            )?)
-            .done();
+    custom_event::purge(&config.username)?;
+    let custom_events = custom_event::get(&config.username)?;
+
+    'outer: for e in &config.events {
+        for ce in &custom_events {
+            if e.hash == ce.hash {
+                continue 'outer;
+            }
+        }
+        let mut ical_event = IEvent::new();
+        ical_event.starts(NaiveDateTime::parse_from_str(
+            &e.start_dt,
+            "%Y-%m-%dT%H:%M:%S",
+        )?);
+        ical_event.ends(NaiveDateTime::parse_from_str(
+            &e.end_dt,
+            "%Y-%m-%dT%H:%M:%S",
+        )?);
+        if let Some(desc) = &e.desc {
+            ical_event.description(desc);
+        }
 
         for (i, calendar) in calendars.iter_mut().enumerate() {
             ical_event.summary(&config.summaries[i]);
@@ -102,17 +128,17 @@ fn make(config: &Config) -> Result<Vec<Calendar>, Box<dyn Error>> {
         }
     }
 
-    custom_event::purge(&config.username)?;
+    for e in custom_events {
+        let start_dt = NaiveDateTime::parse_from_str(&e.start_dt, "%Y-%m-%d %H:%M:%S")?;
+        let end_dt = NaiveDateTime::parse_from_str(&e.end_dt, "%Y-%m-%d %H:%M:%S")?;
 
-    for (start_datetime_str, end_datetime_str) in custom_event::get(&config.username)? {
-        let start_datetime =
-            NaiveDateTime::parse_from_str(&start_datetime_str, "%Y-%m-%d %H:%M:%S")?;
-        let end_datetime = NaiveDateTime::parse_from_str(&end_datetime_str, "%Y-%m-%d %H:%M:%S")?;
+        let mut event = IEvent::new();
+        event.starts(start_dt);
+        event.ends(end_dt);
+        if let Some(desc) = &e.desc {
+            event.description(desc);
+        }
 
-        let mut event = Event::new()
-            .starts(start_datetime)
-            .ends(end_datetime)
-            .done();
         for (i, calendar) in calendars.iter_mut().enumerate() {
             event.summary(&config.summaries[i]);
             calendar.push(event.clone());

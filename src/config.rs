@@ -3,14 +3,16 @@ use std::path::PathBuf;
 use confy::ConfyError;
 use file_lock::{FileLock, FileOptions};
 
+use crate::schedule::Event;
+
 #[derive(Default, serde::Deserialize, serde::Serialize, Clone)]
 pub struct Config {
     pub username: String,
     pub password: String,
     pub summaries: Vec<String>,
     pub frequency: u64,
-    pub events: Vec<(String, String, String)>,
-    pub custom_events: Vec<(String, String)>,
+    pub events: Vec<Event>,
+    pub custom_events: Vec<Event>,
 }
 
 pub fn load(path: &std::path::PathBuf) -> Result<Config, confy::ConfyError> {
